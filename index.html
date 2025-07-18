@@ -171,7 +171,7 @@
         if (isConnected) {
             updateStatus("Wallet terhubung. Anda bisa memulai pembayaran.", "success");
         } else {
-            updateStatus("Silakan hubungkan wallet untuk memulai.", "info");
+            updateStatus("Silakan hubungkan wallet untuk memulai. Pastikan Anda memiliki wallet TON seperti Tonkeeper.", "info");
         }
     }
 
@@ -322,6 +322,7 @@
       });
 
       // Set status tombol awal berdasarkan status koneksi saat ini
+      // Ini penting untuk menginisialisasi status tombol saat halaman dimuat
       setButtonStates(tonConnectUI.connected);
     }
   </script>
