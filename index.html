@@ -2,40 +2,21 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deep Net Payment</title>
-  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
-  <script src="./app.js" defer></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bayar WiFi Deep Net</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-      text-align: center;
-      max-width: 480px;
-      margin: auto;
-      position: relative;
-    }
-    h1 {
-      font-size: 22px;
-      margin-bottom: 6px;
-    }
-    h2 {
-      font-size: 18px;
-    }
-    button {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      background-color: #007bff;
-      color: white;
-      margin: 10px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    #status {
-      margin-top: 16px;
-      font-weight: bold;
+      font-family: 'Inter', sans-serif;
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      color: #333;
     }
     #connect-wallet-btn {
       position: absolute;
@@ -43,29 +24,76 @@
       right: 10px;
       width: 40px;
       height: 40px;
-      border-radius: 50%;
-      background: transparent;
       border: none;
+      background: transparent;
       cursor: pointer;
+      border-radius: 50%;
+      overflow: hidden; /* Ensure image respects border-radius */
     }
     #connect-wallet-btn img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
       border-radius: 50%;
+      object-fit: cover;
     }
-    #spinner {
-      margin-top: 15px;
-      display: none;
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+      box-sizing: border-box; /* Include padding in width calculation */
     }
-    .loader {
+    h2 {
+      color: #007bff;
+      margin-bottom: 20px;
+      font-size: 2em;
+    }
+    p {
+      margin-bottom: 10px;
+      font-size: 1.1em;
+    }
+    strong {
+      color: #28a745;
+    }
+    button {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+    }
+    button:hover {
+      background-color: #0056b3;
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #555;
+      min-height: 20px; /* Ensure space for status message */
+    }
+    .loading-spinner {
       border: 4px solid #f3f3f3;
       border-top: 4px solid #007bff;
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
+      width: 20px;
+      height: 20px;
       animation: spin 1s linear infinite;
-      margin: auto;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 10px;
     }
     @keyframes spin {
       0% { transform: rotate(0deg); }
@@ -74,13 +102,165 @@
   </style>
 </head>
 <body>
-  <button id="connect-wallet-btn" onclick="connectWallet()">
-    <img src="https://tonkeeper.com/assets/tonkeeper-icon.png" alt="Tonkeeper" />
-  </button>
-  <h1>Deep Net Payment</h1>
-  <h2>Halo, <span id="user-name">Pengguna</span>!</h2>
-  <button onclick="handleBayar()">Bayar 0.5 TON</button>
-  <p id="status">Menunggu koneksi...</p>
-  <div id="spinner"><div class="loader"></div></div>
+  <div id="connect-wallet-btn"></div>
+  <div class="container">
+    <h2>Langganan WiFi Deep Net</h2>
+    <p>Halo, <span id="user-name">Pengguna</span>!</p>
+    <p>Tagihan: <strong>0.5 TON</strong></p>
+    <p>
+      <button id="bayar-btn">💳 Bayar Sekarang</button>
+      <button id="verify-btn" onclick="verifyPayment()">✅ Saya Sudah Bayar</button>
+    </p>
+    <p id="status">Silakan hubungkan wallet untuk memulai.</p>
+  </div>
+
+  <script>
+    // Initialize TonConnectUI
+    const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: 'https://andigraph.github.io/final/tonconnect-manifest.json',
+      buttonRootId: 'connect-wallet-btn'
+    });
+
+    // --- Configuration ---
+    // The TON testnet address where payments should be sent.
+    // IMPORTANT: Replace this with your actual TON testnet address.
+    const RECIPIENT_TON_ADDRESS = "0QCzyrSNbHbash569LIGTG_UcgZoJWRtnpljEQbLW_qyA0Of";
+    // The amount in TON (0.5 TON = 500,000,000 nanotons)
+    const PAYMENT_AMOUNT_NANOTONS = 500000000;
+    // The minimum amount to detect a successful payment (e.g., 0.49 TON to account for gas fees)
+    const MIN_DETECTION_AMOUNT_NANOTONS = 490000000;
+    // Your Google Apps Script Web App URL
+    // IMPORTANT: Replace this with your deployed Google Apps Script URL.
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sOgpMhPreDOCH6uqaHT5PB15f-AYhMgR7p4fNB9iClu2V9e7Leu7-jqJvyZl1yDT-g/exec";
+
+    /**
+     * Handles the "Bayar Sekarang" button click.
+     * Initiates a payment transaction via Tonkeeper.
+     */
+    async function handleBayar() {
+      const connected = await tonConnectUI.connected;
+      if (!connected?.account?.address) {
+        updateStatus("Harap hubungkan wallet terlebih dahulu.", "error");
+        return;
+      }
+
+      const walletAddress = connected.account.address;
+      updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran...", "info");
+
+      try {
+        // Record pending payment in Google Sheet
+        await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Pending");
+
+        // Construct the payment URL for Tonkeeper
+        const paymentUrl = `https://wallet.tonkeeper.com/transfer/${RECIPIENT_TON_ADDRESS}?amount=${PAYMENT_AMOUNT_NANOTONS}`;
+        window.open(paymentUrl, "_blank"); // Open Tonkeeper in a new tab/window
+        updateStatus("Silakan selesaikan pembayaran di Tonkeeper. Klik 'Saya Sudah Bayar' setelah selesai.", "info");
+
+      } catch (err) {
+        console.error("Gagal memulai pembayaran:", err);
+        updateStatus("Gagal memulai pembayaran. Coba lagi.", "error");
+      }
+    }
+
+    /**
+     * Verifies if a payment has been received from the connected wallet.
+     * Fetches recent transactions from toncenter.com.
+     */
+    async function verifyPayment() {
+      const connected = await tonConnectUI.connected;
+      if (!connected?.account?.address) {
+        updateStatus("Wallet belum terhubung.", "error");
+        return;
+      }
+
+      const walletAddress = connected.account.address;
+      updateStatus("Memverifikasi pembayaran... <span class='loading-spinner'></span>", "loading");
+
+      try {
+        // Fetch recent transactions for the recipient address
+        const res = await fetch(`https://testnet.toncenter.com/api/v2/getTransactions?address=${RECIPIENT_TON_ADDRESS}&limit=10`);
+        const json = await res.json();
+
+        if (json.ok && json.result) {
+          // Find a transaction from the connected wallet with the correct amount
+          const tx = json.result.find(tx =>
+            tx.in_msg?.source === walletAddress &&
+            parseInt(tx.in_msg.value) >= MIN_DETECTION_AMOUNT_NANOTONS
+          );
+
+          if (tx) {
+            updateStatus("Pembayaran ditemukan! ✅", "success");
+            // Record successful payment in Google Sheet
+            await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Success");
+          } else {
+            updateStatus("Belum ada pembayaran yang terdeteksi dari wallet Anda.", "info");
+            // Optionally, record failed/not-found payment attempt
+            // await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Failed/Not Found");
+          }
+        } else {
+          updateStatus("Gagal mengambil data transaksi dari TON Center.", "error");
+          console.error("TON Center API error:", json);
+        }
+      } catch (err) {
+        updateStatus("Gagal verifikasi pembayaran. Periksa koneksi atau coba lagi.", "error");
+        console.error("Error during payment verification:", err);
+      }
+    }
+
+    /**
+     * Sends payment data to the Google Apps Script.
+     * @param {string} wallet - The wallet address.
+     * @param {string} amount - The payment amount.
+     * @param {string} status - The payment status (e.g., "Pending", "Success", "Failed").
+     */
+    async function sendDataToGoogleSheet(wallet, amount, status) {
+      try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wallet: wallet,
+            amount: amount,
+            status: status,
+            timestamp: new Date().toISOString() // Add timestamp for better records
+          })
+        });
+        console.log("Data pembayaran dikirim ke Google Sheet.");
+      } catch (err) {
+        console.error("Gagal mengirim data ke Google Sheet:", err);
+      }
+    }
+
+    /**
+     * Updates the status message displayed in the DApp.
+     * @param {string} message - The message to display.
+     * @param {string} type - Type of message (info, success, error, loading).
+     */
+    function updateStatus(message, type = "info") {
+      const statusElement = document.getElementById('status');
+      statusElement.innerHTML = message;
+      statusElement.style.color = {
+        'info': '#555',
+        'success': '#28a745',
+        'error': '#dc3545',
+        'loading': '#007bff'
+      }[type];
+    }
+
+    // --- Initialization on Window Load ---
+    window.onload = () => {
+      // Check if running inside Telegram Web App
+      if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready();
+        // Get user's first name from Telegram Web App init data
+        document.getElementById('user-name').textContent = Telegram.WebApp.initDataUnsafe.user?.first_name || "Pengguna";
+      }
+
+      // Add event listeners to buttons
+      document.getElementById("bayar-btn").addEventListener("click", handleBayar);
+      // The verifyPayment function is already called via onclick in HTML, but adding it here for consistency
+      // document.getElementById("verify-btn").addEventListener("click", verifyPayment);
+    }
+  </script>
 </body>
 </html>
