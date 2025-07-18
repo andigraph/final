@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bayar WiFi Deep Net</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Memuat TonConnect UI SDK -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <!-- Memuat Telegram Web App SDK (jika DApp dijalankan di Telegram) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
@@ -28,7 +30,7 @@
       background: transparent;
       cursor: pointer;
       border-radius: 50%;
-      overflow: hidden; /* Ensure image respects border-radius */
+      overflow: hidden; /* Memastikan gambar mengikuti border-radius */
     }
     #connect-wallet-btn img {
       width: 100%;
@@ -44,7 +46,7 @@
       text-align: center;
       max-width: 480px;
       width: 90%;
-      box-sizing: border-box; /* Include padding in width calculation */
+      box-sizing: border-box; /* Memasukkan padding dalam perhitungan lebar */
     }
     h2 {
       color: #007bff;
@@ -82,7 +84,7 @@
       margin-top: 20px;
       font-weight: bold;
       color: #555;
-      min-height: 20px; /* Ensure space for status message */
+      min-height: 20px; /* Memastikan ada ruang untuk pesan status */
     }
     .loading-spinner {
       border: 4px solid #f3f3f3;
@@ -115,74 +117,93 @@
   </div>
 
   <script>
-    // Initialize TonConnectUI
+    // Inisialisasi TonConnectUI
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: 'https://andigraph.github.io/final/tonconnect-manifest.json',
       buttonRootId: 'connect-wallet-btn'
     });
 
-    // --- Configuration ---
-    // The TON testnet address where payments should be sent.
-    // IMPORTANT: Replace this with your actual TON testnet address.
+    // --- Konfigurasi ---
+    // Alamat TON testnet tempat pembayaran harus dikirim.
+    // PENTING: Ganti ini dengan alamat TON testnet Anda yang sebenarnya.
     const RECIPIENT_TON_ADDRESS = "0QCzyrSNbHbash569LIGTG_UcgZoJWRtnpljEQbLW_qyA0Of";
-    // The amount in TON (0.5 TON = 500,000,000 nanotons)
+    // Jumlah dalam TON (0.5 TON = 500,000,000 nanotons)
     const PAYMENT_AMOUNT_NANOTONS = 500000000;
-    // The minimum amount to detect a successful payment (e.g., 0.49 TON to account for gas fees)
+    // Jumlah minimum untuk mendeteksi pembayaran berhasil (misalnya, 0.49 TON untuk biaya gas)
     const MIN_DETECTION_AMOUNT_NANOTONS = 490000000;
-    // Your Google Apps Script Web App URL
-    // IMPORTANT: Replace this with your deployed Google Apps Script URL.
+    // URL Web App Google Apps Script Anda
+    // PENTING: Ganti ini dengan URL Web App Google Apps Script Anda yang sudah di-deploy.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sOgpMhPreDOCH6uqaHT5PB15f-AYhMgR7p4fNB9iClu2V9e7Leu7-jqJvyZl1yDT-g/exec";
 
     /**
-     * Handles the "Bayar Sekarang" button click.
-     * Initiates a payment transaction via Tonkeeper.
+     * Menangani klik tombol "Bayar Sekarang".
+     * Memulai transaksi pembayaran melalui Tonkeeper.
      */
     async function handleBayar() {
+      // Tunggu hingga TonConnectUI terhubung dan dapatkan informasi akun
       const connected = await tonConnectUI.connected;
-      if (!connected?.account?.address) {
+      if (!connected || !connected.account || !connected.account.address) {
         updateStatus("Harap hubungkan wallet terlebih dahulu.", "error");
+        console.error("Kesalahan: Wallet belum terhubung saat mencoba pembayaran.");
         return;
       }
 
       const walletAddress = connected.account.address;
       updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran...", "info");
+      console.log("Memulai proses pembayaran dari wallet:", walletAddress);
 
       try {
-        // Record pending payment in Google Sheet
+        // Catat pembayaran tertunda di Google Sheet
         await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Pending");
+        console.log("Data 'Pending' berhasil dikirim ke Google Sheet.");
 
-        // Construct the payment URL for Tonkeeper
+        // Buat URL pembayaran untuk Tonkeeper
         const paymentUrl = `https://wallet.tonkeeper.com/transfer/${RECIPIENT_TON_ADDRESS}?amount=${PAYMENT_AMOUNT_NANOTONS}`;
-        window.open(paymentUrl, "_blank"); // Open Tonkeeper in a new tab/window
-        updateStatus("Silakan selesaikan pembayaran di Tonkeeper. Klik 'Saya Sudah Bayar' setelah selesai.", "info");
+        console.log("Mencoba membuka URL Tonkeeper:", paymentUrl);
+
+        // Buka Tonkeeper di tab/jendela baru
+        const newWindow = window.open(paymentUrl, "_blank");
+
+        // Periksa apakah jendela baru berhasil dibuka (bukan diblokir oleh pop-up blocker)
+        if (newWindow) {
+            updateStatus("Silakan selesaikan pembayaran di Tonkeeper. Klik 'Saya Sudah Bayar' setelah selesai.", "info");
+            console.log("Jendela Tonkeeper berhasil dibuka.");
+        } else {
+            updateStatus("Gagal membuka Tonkeeper. Harap nonaktifkan pemblokir pop-up atau izinkan pop-up untuk situs ini.", "error");
+            console.warn("Peringatan: Jendela Tonkeeper tidak dapat dibuka. Kemungkinan pemblokir pop-up.");
+        }
 
       } catch (err) {
-        console.error("Gagal memulai pembayaran:", err);
+        console.error("Kesalahan saat memulai pembayaran:", err);
         updateStatus("Gagal memulai pembayaran. Coba lagi.", "error");
       }
     }
 
     /**
-     * Verifies if a payment has been received from the connected wallet.
-     * Fetches recent transactions from toncenter.com.
+     * Memverifikasi apakah pembayaran telah diterima dari wallet yang terhubung.
+     * Mengambil transaksi terbaru dari toncenter.com.
      */
     async function verifyPayment() {
       const connected = await tonConnectUI.connected;
-      if (!connected?.account?.address) {
+      if (!connected || !connected.account || !connected.account.address) {
         updateStatus("Wallet belum terhubung.", "error");
+        console.error("Kesalahan: Wallet belum terhubung saat mencoba verifikasi pembayaran.");
         return;
       }
 
       const walletAddress = connected.account.address;
       updateStatus("Memverifikasi pembayaran... <span class='loading-spinner'></span>", "loading");
+      console.log("Memulai verifikasi pembayaran untuk wallet:", walletAddress);
 
       try {
-        // Fetch recent transactions for the recipient address
+        // Ambil transaksi terbaru untuk alamat penerima
         const res = await fetch(`https://testnet.toncenter.com/api/v2/getTransactions?address=${RECIPIENT_TON_ADDRESS}&limit=10`);
         const json = await res.json();
+        console.log("Respons dari TON Center:", json);
 
-        if (json.ok && json.result) {
-          // Find a transaction from the connected wallet with the correct amount
+        // Periksa apakah respons API OK dan memiliki hasil transaksi
+        if (json.ok && json.result && Array.isArray(json.result)) {
+          // Cari transaksi dari wallet yang terhubung dengan jumlah yang benar
           const tx = json.result.find(tx =>
             tx.in_msg?.source === walletAddress &&
             parseInt(tx.in_msg.value) >= MIN_DETECTION_AMOUNT_NANOTONS
@@ -190,51 +211,56 @@
 
           if (tx) {
             updateStatus("Pembayaran ditemukan! ✅", "success");
-            // Record successful payment in Google Sheet
+            console.log("Transaksi yang cocok ditemukan:", tx);
+            // Catat pembayaran berhasil di Google Sheet
             await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Success");
           } else {
             updateStatus("Belum ada pembayaran yang terdeteksi dari wallet Anda.", "info");
-            // Optionally, record failed/not-found payment attempt
-            // await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Failed/Not Found");
+            console.log("Tidak ada transaksi yang cocok ditemukan dari wallet ini.");
           }
         } else {
-          updateStatus("Gagal mengambil data transaksi dari TON Center.", "error");
-          console.error("TON Center API error:", json);
+          updateStatus("Gagal mengambil data transaksi dari TON Center. Respons tidak valid.", "error");
+          console.error("TON Center API error: Respons tidak OK atau hasil tidak ditemukan.", json);
         }
       } catch (err) {
         updateStatus("Gagal verifikasi pembayaran. Periksa koneksi atau coba lagi.", "error");
-        console.error("Error during payment verification:", err);
+        console.error("Kesalahan selama verifikasi pembayaran:", err);
       }
     }
 
     /**
-     * Sends payment data to the Google Apps Script.
-     * @param {string} wallet - The wallet address.
-     * @param {string} amount - The payment amount.
-     * @param {string} status - The payment status (e.g., "Pending", "Success", "Failed").
+     * Mengirim data pembayaran ke Google Apps Script.
+     * @param {string} wallet - Alamat wallet.
+     * @param {string} amount - Jumlah pembayaran.
+     * @param {string} status - Status pembayaran (misalnya, "Pending", "Success", "Failed").
      */
     async function sendDataToGoogleSheet(wallet, amount, status) {
       try {
-        await fetch(GOOGLE_SCRIPT_URL, {
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             wallet: wallet,
             amount: amount,
             status: status,
-            timestamp: new Date().toISOString() // Add timestamp for better records
+            timestamp: new Date().toISOString() // Tambahkan timestamp untuk catatan yang lebih baik
           })
         });
-        console.log("Data pembayaran dikirim ke Google Sheet.");
+        const result = await response.json(); // Mengasumsikan Google Script mengembalikan JSON
+        if (result.status === "success") {
+            console.log("Data pembayaran berhasil dikirim ke Google Sheet.");
+        } else {
+            console.error("Gagal mengirim data ke Google Sheet:", result.message);
+        }
       } catch (err) {
-        console.error("Gagal mengirim data ke Google Sheet:", err);
+        console.error("Kesalahan saat mengirim data ke Google Sheet:", err);
       }
     }
 
     /**
-     * Updates the status message displayed in the DApp.
-     * @param {string} message - The message to display.
-     * @param {string} type - Type of message (info, success, error, loading).
+     * Memperbarui pesan status yang ditampilkan di DApp.
+     * @param {string} message - Pesan yang akan ditampilkan.
+     * @param {string} type - Jenis pesan (info, success, error, loading).
      */
     function updateStatus(message, type = "info") {
       const statusElement = document.getElementById('status');
@@ -247,19 +273,18 @@
       }[type];
     }
 
-    // --- Initialization on Window Load ---
+    // --- Inisialisasi saat Jendela Dimuat ---
     window.onload = () => {
-      // Check if running inside Telegram Web App
+      // Periksa apakah berjalan di dalam Telegram Web App
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
-        // Get user's first name from Telegram Web App init data
+        // Dapatkan nama depan pengguna dari data init Telegram Web App
         document.getElementById('user-name').textContent = Telegram.WebApp.initDataUnsafe.user?.first_name || "Pengguna";
       }
 
-      // Add event listeners to buttons
+      // Tambahkan event listener ke tombol "Bayar Sekarang"
       document.getElementById("bayar-btn").addEventListener("click", handleBayar);
-      // The verifyPayment function is already called via onclick in HTML, but adding it here for consistency
-      // document.getElementById("verify-btn").addEventListener("click", verifyPayment);
+      // Tombol "Saya Sudah Bayar" sudah memiliki onclick di HTML, tidak perlu menambahkan listener lagi di sini
     }
   </script>
 </body>
