@@ -4,6 +4,9 @@
 
 let tonConnect;
 let connectedWallet;
+const tonConnect = new TON_CONNECT.TonConnect({
+  manifestUrl: 'https://andigraph.github.io/final/tonconnect-manifest.json'
+});
 
 async function initTonConnect() {
   tonConnect = new TON_CONNECT.TonConnect();
