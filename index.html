@@ -197,9 +197,10 @@
         await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Pending");
         console.log("Data 'Pending' berhasil dikirim ke Google Sheet.");
 
-        // Buat URL pembayaran untuk Tonkeeper
+        // Buat URL pembayaran untuk Tonkeeper (menggunakan HTTPS sebagai fallback utama)
+        // Ini adalah URL universal yang membuka Tonkeeper Web Wallet di tab baru.
         const paymentUrl = `https://wallet.tonkeeper.com/transfer/${RECIPIENT_TON_ADDRESS}?amount=${PAYMENT_AMOUNT_NANOTONS}`;
-        console.log("Mencoba membuka URL Tonkeeper:", paymentUrl);
+        console.log("Mencoba membuka URL Tonkeeper (HTTPS):", paymentUrl);
 
         // Buka Tonkeeper di tab/jendela baru
         const newWindow = window.open(paymentUrl, "_blank");
