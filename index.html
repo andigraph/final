@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Bayar WiFi Deep Net</title>
-  <link rel="stylesheet" href="style.css">
   <!-- Memuat TonConnect UI SDK -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <!-- Memuat Telegram Web App SDK (jika DApp dijalankan di Telegram) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    /* Menggabungkan style.css langsung ke dalam HTML */
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f0f2f5;
@@ -72,13 +72,18 @@
       transition: background-color 0.3s ease, transform 0.2s ease;
       box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
     }
-    button:hover {
+    button:hover:not(:disabled) { /* Hanya hover jika tidak disabled */
       background-color: #0056b3;
       transform: translateY(-2px);
     }
-    button:active {
+    button:active:not(:disabled) { /* Hanya active jika tidak disabled */
       transform: translateY(0);
       box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+    }
+    button:disabled { /* Gaya untuk tombol disabled */
+        background-color: #cccccc;
+        cursor: not-allowed;
+        box-shadow: none;
     }
     #status {
       margin-top: 20px;
@@ -110,8 +115,8 @@
     <p>Halo, <span id="user-name">Pengguna</span>!</p>
     <p>Tagihan: <strong>0.5 TON</strong></p>
     <p>
-      <button id="bayar-btn">💳 Bayar Sekarang</button>
-      <button id="verify-btn" onclick="verifyPayment()">✅ Saya Sudah Bayar</button>
+      <button id="bayar-btn" disabled>💳 Bayar Sekarang</button>
+      <button id="verify-btn" disabled onclick="verifyPayment()">✅ Saya Sudah Bayar</button>
     </p>
     <p id="status">Silakan hubungkan wallet untuk memulai.</p>
   </div>
@@ -119,7 +124,7 @@
   <script>
     // Inisialisasi TonConnectUI
     const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: 'https://andigraph.github.io/final/tonconnect-manifest.json',
+      manifestUrl: 'https://andigraph.github.io/deeppayment/tonconnect-manifest.json',
       buttonRootId: 'connect-wallet-btn'
     });
 
@@ -135,13 +140,48 @@
     // PENTING: Ganti ini dengan URL Web App Google Apps Script Anda yang sudah di-deploy.
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sOgpMhPreDOCH6uqaHT5PB15f-AYhMgR7p4fNB9iClu2V9e7Leu7-jqJvyZl1yDT-g/exec";
 
+    // Referensi ke tombol
+    const bayarBtn = document.getElementById("bayar-btn");
+    const verifyBtn = document.getElementById("verify-btn");
+    const userNameSpan = document.getElementById('user-name');
+    const statusElement = document.getElementById('status');
+
+    /**
+     * Memperbarui pesan status yang ditampilkan di DApp.
+     * @param {string} message - Pesan yang akan ditampilkan.
+     * @param {string} type - Jenis pesan (info, success, error, loading).
+     */
+    function updateStatus(message, type = "info") {
+      statusElement.innerHTML = message;
+      statusElement.style.color = {
+        'info': '#555',
+        'success': '#28a745',
+        'error': '#dc3545',
+        'loading': '#007bff'
+      }[type];
+    }
+
+    /**
+     * Mengatur status tombol berdasarkan koneksi wallet.
+     * @param {boolean} isConnected - True jika wallet terhubung, false jika tidak.
+     */
+    function setButtonStates(isConnected) {
+        bayarBtn.disabled = !isConnected;
+        verifyBtn.disabled = !isConnected;
+        if (isConnected) {
+            updateStatus("Wallet terhubung. Anda bisa memulai pembayaran.", "success");
+        } else {
+            updateStatus("Silakan hubungkan wallet untuk memulai.", "info");
+        }
+    }
+
     /**
      * Menangani klik tombol "Bayar Sekarang".
      * Memulai transaksi pembayaran melalui Tonkeeper.
      */
     async function handleBayar() {
-      // Tunggu hingga TonConnectUI terhubung dan dapatkan informasi akun
-      const connected = await tonConnectUI.connected;
+      // Pastikan wallet terhubung sebelum melanjutkan
+      const connected = tonConnectUI.connected;
       if (!connected || !connected.account || !connected.account.address) {
         updateStatus("Harap hubungkan wallet terlebih dahulu.", "error");
         console.error("Kesalahan: Wallet belum terhubung saat mencoba pembayaran.");
@@ -149,7 +189,7 @@
       }
 
       const walletAddress = connected.account.address;
-      updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran...", "info");
+      updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran...", "loading");
       console.log("Memulai proses pembayaran dari wallet:", walletAddress);
 
       try {
@@ -184,7 +224,8 @@
      * Mengambil transaksi terbaru dari toncenter.com.
      */
     async function verifyPayment() {
-      const connected = await tonConnectUI.connected;
+      // Pastikan wallet terhubung sebelum melanjutkan
+      const connected = tonConnectUI.connected;
       if (!connected || !connected.account || !connected.account.address) {
         updateStatus("Wallet belum terhubung.", "error");
         console.error("Kesalahan: Wallet belum terhubung saat mencoba verifikasi pembayaran.");
@@ -257,34 +298,31 @@
       }
     }
 
-    /**
-     * Memperbarui pesan status yang ditampilkan di DApp.
-     * @param {string} message - Pesan yang akan ditampilkan.
-     * @param {string} type - Jenis pesan (info, success, error, loading).
-     */
-    function updateStatus(message, type = "info") {
-      const statusElement = document.getElementById('status');
-      statusElement.innerHTML = message;
-      statusElement.style.color = {
-        'info': '#555',
-        'success': '#28a745',
-        'error': '#dc3545',
-        'loading': '#007bff'
-      }[type];
-    }
-
     // --- Inisialisasi saat Jendela Dimuat ---
     window.onload = () => {
       // Periksa apakah berjalan di dalam Telegram Web App
       if (window.Telegram?.WebApp) {
         Telegram.WebApp.ready();
         // Dapatkan nama depan pengguna dari data init Telegram Web App
-        document.getElementById('user-name').textContent = Telegram.WebApp.initDataUnsafe.user?.first_name || "Pengguna";
+        userNameSpan.textContent = Telegram.WebApp.initDataUnsafe.user?.first_name || "Pengguna";
       }
 
       // Tambahkan event listener ke tombol "Bayar Sekarang"
-      document.getElementById("bayar-btn").addEventListener("click", handleBayar);
-      // Tombol "Saya Sudah Bayar" sudah memiliki onclick di HTML, tidak perlu menambahkan listener lagi di sini
+      bayarBtn.addEventListener("click", handleBayar);
+
+      // Dengarkan perubahan status koneksi TonConnectUI
+      tonConnectUI.onStatusChange(wallet => {
+        if (wallet) {
+          console.log("Wallet terhubung:", wallet.account.address);
+          setButtonStates(true);
+        } else {
+          console.log("Wallet terputus.");
+          setButtonStates(false);
+        }
+      });
+
+      // Set status tombol awal berdasarkan status koneksi saat ini
+      setButtonStates(tonConnectUI.connected);
     }
   </script>
 </body>
