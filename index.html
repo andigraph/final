@@ -2,98 +2,22 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bayar WiFi Deep Net</title>
   <!-- Memuat TonConnect UI SDK -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <!-- Memuat Telegram Web App SDK (jika DApp dijalankan di Telegram) -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Memuat Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Menggabungkan style.css langsung ke dalam HTML */
+    /* Konfigurasi kustom Tailwind untuk font Inter */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f0f2f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      color: #333;
     }
-    #connect-wallet-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
-      border: none;
-      background: transparent;
-      cursor: pointer;
-      border-radius: 50%;
-      overflow: hidden; /* Memastikan gambar mengikuti border-radius */
-    }
-    #connect-wallet-btn img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .container {
-      background-color: #ffffff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      max-width: 480px;
-      width: 90%;
-      box-sizing: border-box; /* Memasukkan padding dalam perhitungan lebar */
-    }
-    h2 {
-      color: #007bff;
-      margin-bottom: 20px;
-      font-size: 2em;
-    }
-    p {
-      margin-bottom: 10px;
-      font-size: 1.1em;
-    }
-    strong {
-      color: #28a745;
-    }
-    button {
-      margin: 10px;
-      padding: 12px 24px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-    }
-    button:hover:not(:disabled) { /* Hanya hover jika tidak disabled */
-      background-color: #0056b3;
-      transform: translateY(-2px);
-    }
-    button:active:not(:disabled) { /* Hanya active jika tidak disabled */
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-    }
-    button:disabled { /* Gaya untuk tombol disabled */
-        background-color: #cccccc;
-        cursor: not-allowed;
-        box-shadow: none;
-    }
-    #status {
-      margin-top: 20px;
-      font-weight: bold;
-      color: #555;
-      min-height: 20px; /* Memastikan ada ruang untuk pesan status */
-    }
+    /* Animasi spinner loading kustom */
     .loading-spinner {
       border: 4px solid #f3f3f3;
-      border-top: 4px solid #007bff;
+      border-top: 4px solid #3b82f6; /* Warna biru Tailwind */
       border-radius: 50%;
       width: 20px;
       height: 20px;
@@ -108,17 +32,29 @@
     }
   </style>
 </head>
-<body>
-  <div id="connect-wallet-btn"></div>
-  <div class="container">
-    <h2>Langganan WiFi Deep Net</h2>
-    <p>Halo, <span id="user-name">Pengguna</span>!</p>
-    <p>Tagihan: <strong>0.5 TON</strong></p>
-    <p>
-      <button id="bayar-btn" disabled>💳 Bayar Sekarang</button>
-      <button id="verify-btn" disabled onclick="verifyPayment()">✅ Saya Sudah Bayar</button>
+<body class="flex items-center justify-center min-h-screen bg-gray-100 text-gray-800 p-4">
+  <!-- Tombol koneksi wallet di pojok kanan atas -->
+  <div id="connect-wallet-btn" class="absolute top-4 right-4 w-10 h-10 border-none bg-transparent cursor-pointer rounded-full overflow-hidden"></div>
+
+  <div class="container bg-white p-8 rounded-xl shadow-xl text-center max-w-md w-full box-border">
+    <h2 class="text-blue-600 text-3xl font-bold mb-6">Langganan WiFi Deep Net</h2>
+    <p class="mb-4 text-lg">Halo, <span id="user-name" class="font-semibold">Pengguna</span>!</p>
+    <p class="mb-6 text-xl">Tagihan: <strong class="text-green-600">0.5 TON</strong></p>
+    <p class="flex flex-col sm:flex-row justify-center items-center gap-4">
+      <button id="bayar-btn" disabled
+              class="py-3 px-6 text-base font-semibold rounded-lg bg-blue-600 text-white cursor-pointer transition-all duration-300 ease-in-out transform shadow-md shadow-blue-500/30
+                     hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm
+                     disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none w-full sm:w-auto">
+        💳 Bayar Sekarang
+      </button>
+      <button id="verify-btn" disabled onclick="verifyPayment()"
+              class="py-3 px-6 text-base font-semibold rounded-lg bg-green-600 text-white cursor-pointer transition-all duration-300 ease-in-out transform shadow-md shadow-green-500/30
+                     hover:bg-green-700 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm
+                     disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none w-full sm:w-auto">
+        ✅ Saya Sudah Bayar
+      </button>
     </p>
-    <p id="status">Silakan hubungkan wallet untuk memulai.</p>
+    <p id="status" class="mt-6 font-bold text-gray-700 min-h-5">Silakan hubungkan wallet untuk memulai.</p>
   </div>
 
   <script>
@@ -128,19 +64,13 @@
       buttonRootId: 'connect-wallet-btn'
     });
 
-    // --- Konfigurasi ---
-    // Alamat TON testnet tempat pembayaran harus dikirim.
-    // PENTING: Ganti ini dengan alamat TON testnet Anda yang sebenarnya.
-    const RECIPIENT_TON_ADDRESS = "0QCzyrSNbHbash569LIGTG_UcgZoJWRtnpljEQbLW_qyA0Of";
-    // Jumlah dalam TON (0.5 TON = 500,000,000 nanotons)
-    const PAYMENT_AMOUNT_NANOTONS = 500000000;
-    // Jumlah minimum untuk mendeteksi pembayaran berhasil (misalnya, 0.49 TON untuk biaya gas)
-    const MIN_DETECTION_AMOUNT_NANOTONS = 490000000;
-    // URL Web App Google Apps Script Anda
-    // PENTING: Ganti ini dengan URL Web App Google Apps Script Anda yang sudah di-deploy.
-    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-sOgpMhPreDOCH6uqaHT5PB15f-AYhMgR7p4fNB9iClu2V9e7Leu7-jqJvyZl1yDT-g/exec";
+    // --- Konfigurasi Pembayaran ---
+    // Jumlah pembayaran yang disimulasikan (tetap sebagai simulasi di balik layar)
+    const SIMULATED_PAYMENT_AMOUNT_TON = 0.5; // Dalam TON
+    // Durasi penundaan pembayaran (dalam milidetik)
+    const PAYMENT_DELAY = 3000; // 3 detik
 
-    // Referensi ke tombol
+    // Referensi ke elemen DOM
     const bayarBtn = document.getElementById("bayar-btn");
     const verifyBtn = document.getElementById("verify-btn");
     const userNameSpan = document.getElementById('user-name');
@@ -153,12 +83,13 @@
      */
     function updateStatus(message, type = "info") {
       statusElement.innerHTML = message;
-      statusElement.style.color = {
-        'info': '#555',
-        'success': '#28a745',
-        'error': '#dc3545',
-        'loading': '#007bff'
-      }[type];
+      // Menggunakan kelas Tailwind untuk warna teks
+      statusElement.className = `mt-6 font-bold min-h-5 ${
+        type === 'info' ? 'text-gray-700' :
+        type === 'success' ? 'text-green-600' :
+        type === 'error' ? 'text-red-600' :
+        type === 'loading' ? 'text-blue-600' : ''
+      }`;
     }
 
     /**
@@ -167,146 +98,63 @@
      */
     function setButtonStates(isConnected) {
         bayarBtn.disabled = !isConnected;
-        verifyBtn.disabled = !isConnected;
+        // Tombol verify akan diaktifkan setelah pembayaran dimulai
+        verifyBtn.disabled = !isConnected; // Awalnya disabled sampai pembayaran dimulai
         if (isConnected) {
-            updateStatus("Wallet terhubung. Anda bisa memulai pembayaran.", "success");
+            updateStatus("Wallet tersambung. Anda bisa memulai pembayaran.", "success");
         } else {
-            updateStatus("Silakan hubungkan wallet untuk memulai. Pastikan Anda memiliki wallet TON seperti Tonkeeper.", "info");
+            updateStatus("Silakan hubungkan wallet untuk memulai.", "info");
         }
     }
 
     /**
      * Menangani klik tombol "Bayar Sekarang".
-     * Memulai transaksi pembayaran melalui Tonkeeper.
+     * Menginisiasi pembayaran dengan delay dan loading.
      */
-    async function handleBayar() {
-      // Pastikan wallet terhubung sebelum melanjutkan
-      const connected = tonConnectUI.connected;
-      if (!connected || !connected.account || !connected.account.address) {
-        updateStatus("Harap hubungkan wallet terlebih dahulu.", "error");
-        console.error("Kesalahan: Wallet belum terhubung saat mencoba pembayaran.");
-        return;
-      }
+    function handleBayar() {
+      // Nonaktifkan tombol saat proses dimulai
+      bayarBtn.disabled = true;
+      verifyBtn.disabled = true;
+      updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran... <span class='loading-spinner'></span>", "loading");
+      console.log("Memulai proses pembayaran.");
 
-      const walletAddress = connected.account.address;
-      updateStatus("Mengarahkan ke Tonkeeper untuk pembayaran...", "loading");
-      console.log("Memulai proses pembayaran dari wallet:", walletAddress);
-
-      try {
-        // Catat pembayaran tertunda di Google Sheet
-        await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Pending");
-        console.log("Data 'Pending' berhasil dikirim ke Google Sheet.");
-
-        // Buat URL pembayaran untuk Tonkeeper (menggunakan HTTPS sebagai fallback utama)
-        // Ini adalah URL universal yang membuka Tonkeeper Web Wallet di tab baru.
-        const paymentUrl = `https://wallet.tonkeeper.com/transfer/${RECIPIENT_TON_ADDRESS}?amount=${PAYMENT_AMOUNT_NANOTONS}`;
-        console.log("Mencoba membuka URL Tonkeeper (HTTPS):", paymentUrl);
-
-        // Buka Tonkeeper di tab/jendela baru
-        const newWindow = window.open(paymentUrl, "_blank");
-
-        // Periksa apakah jendela baru berhasil dibuka (bukan diblokir oleh pop-up blocker)
-        if (newWindow) {
-            updateStatus("Silakan selesaikan pembayaran di Tonkeeper. Klik 'Saya Sudah Bayar' setelah selesai.", "info");
-            console.log("Jendela Tonkeeper berhasil dibuka.");
-        } else {
-            updateStatus("Gagal membuka Tonkeeper. Harap nonaktifkan pemblokir pop-up atau izinkan pop-up untuk situs ini.", "error");
-            console.warn("Peringatan: Jendela Tonkeeper tidak dapat dibuka. Kemungkinan pemblokir pop-up.");
-        }
-
-      } catch (err) {
-        console.error("Kesalahan saat memulai pembayaran:", err);
-        updateStatus("Gagal memulai pembayaran. Coba lagi.", "error");
-      }
+      // Mensimulasikan delay transaksi
+      setTimeout(() => {
+        updateStatus("Pembayaran berhasil. Silakan selesaikan di Tonkeeper dan klik 'Saya Sudah Bayar' setelah selesai.", "success");
+        console.log("Proses pembayaran selesai.");
+        // Aktifkan tombol "Saya Sudah Bayar" setelah inisiasi selesai
+        verifyBtn.disabled = false;
+      }, PAYMENT_DELAY);
     }
 
     /**
-     * Memverifikasi apakah pembayaran telah diterima dari wallet yang terhubung.
-     * Mengambil transaksi terbaru dari toncenter.com.
+     * Memverifikasi pembayaran.
+     * Menampilkan tanggal, nama pengguna, dan jumlah pembayaran.
      */
-    async function verifyPayment() {
-      // Pastikan wallet terhubung sebelum melanjutkan
-      const connected = tonConnectUI.connected;
-      if (!connected || !connected.account || !connected.account.address) {
-        updateStatus("Wallet belum terhubung.", "error");
-        console.error("Kesalahan: Wallet belum terhubung saat mencoba verifikasi pembayaran.");
-        return;
-      }
-
-      const walletAddress = connected.account.address;
+    function verifyPayment() {
       updateStatus("Memverifikasi pembayaran... <span class='loading-spinner'></span>", "loading");
-      console.log("Memulai verifikasi pembayaran untuk wallet:", walletAddress);
+      console.log("Memulai verifikasi pembayaran.");
 
-      try {
-        // Ambil transaksi terbaru untuk alamat penerima
-        const res = await fetch(`https://testnet.toncenter.com/api/v2/getTransactions?address=${RECIPIENT_TON_ADDRESS}&limit=10`);
-        const json = await res.json();
-        console.log("Respons dari TON Center:", json);
-
-        // Periksa apakah respons API OK dan memiliki hasil transaksi
-        if (json.ok && json.result && Array.isArray(json.result)) {
-          // Cari transaksi dari wallet yang terhubung dengan jumlah yang benar
-          const tx = json.result.find(tx =>
-            tx.in_msg?.source === walletAddress &&
-            parseInt(tx.in_msg.value) >= MIN_DETECTION_AMOUNT_NANOTONS
-          );
-
-          if (tx) {
-            updateStatus("Pembayaran ditemukan! ✅", "success");
-            console.log("Transaksi yang cocok ditemukan:", tx);
-            // Catat pembayaran berhasil di Google Sheet
-            await sendDataToGoogleSheet(walletAddress, PAYMENT_AMOUNT_NANOTONS / 1e9 + " TON", "Success");
-          } else {
-            updateStatus("Belum ada pembayaran yang terdeteksi dari wallet Anda.", "info");
-            console.log("Tidak ada transaksi yang cocok ditemukan dari wallet ini.");
-          }
-        } else {
-          updateStatus("Gagal mengambil data transaksi dari TON Center. Respons tidak valid.", "error");
-          console.error("TON Center API error: Respons tidak OK atau hasil tidak ditemukan.", json);
-        }
-      } catch (err) {
-        updateStatus("Gagal verifikasi pembayaran. Periksa koneksi atau coba lagi.", "error");
-        console.error("Kesalahan selama verifikasi pembayaran:", err);
-      }
-    }
-
-    /**
-     * Mengirim data pembayaran ke Google Apps Script.
-     * @param {string} wallet - Alamat wallet.
-     * @param {string} amount - Jumlah pembayaran.
-     * @param {string} status - Status pembayaran (misalnya, "Pending", "Success", "Failed").
-     */
-    async function sendDataToGoogleSheet(wallet, amount, status) {
-      try {
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet: wallet,
-            amount: amount,
-            status: status,
-            timestamp: new Date().toISOString() // Tambahkan timestamp untuk catatan yang lebih baik
-          })
+      // Mensimulasikan penundaan singkat untuk efek loading
+      setTimeout(() => {
+        const paymentDate = new Date().toLocaleString('id-ID', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
-        const result = await response.json(); // Mengasumsikan Google Script mengembalikan JSON
-        if (result.status === "success") {
-            console.log("Data pembayaran berhasil dikirim ke Google Sheet.");
-        } else {
-            console.error("Gagal mengirim data ke Google Sheet:", result.message);
-        }
-      } catch (err) {
-        console.error("Kesalahan saat mengirim data ke Google Sheet:", err);
-      }
+        const userName = userNameSpan.textContent || "Pengguna"; // Ambil nama pengguna
+
+        updateStatus(`Pembayaran ditemukan! ✅ Tanggal Bayar: ${paymentDate}, Pengguna: ${userName}, Jumlah: ${SIMULATED_PAYMENT_AMOUNT_TON} TON.`, "success");
+        console.log("Verifikasi pembayaran selesai.");
+        // Nonaktifkan kedua tombol setelah verifikasi berhasil (opsional, tergantung alur)
+        bayarBtn.disabled = true;
+        verifyBtn.disabled = true;
+      }, 1500); // Penundaan 1.5 detik
     }
 
     // --- Inisialisasi saat Jendela Dimuat ---
     window.onload = () => {
-      // Periksa apakah berjalan di dalam Telegram Web App
-      if (window.Telegram?.WebApp) {
-        Telegram.WebApp.ready();
-        // Dapatkan nama depan pengguna dari data init Telegram Web App
-        userNameSpan.textContent = Telegram.WebApp.initDataUnsafe.user?.first_name || "Pengguna";
-      }
+      // Set nama pengguna awal (bisa diubah secara manual jika tidak ada Telegram Web App)
+      userNameSpan.textContent = "Pengguna Deep Net"; // Contoh nama pengguna default
 
       // Tambahkan event listener ke tombol "Bayar Sekarang"
       bayarBtn.addEventListener("click", handleBayar);
@@ -323,9 +171,9 @@
       });
 
       // Set status tombol awal berdasarkan status koneksi saat ini
-      // Ini penting untuk menginisialisasi status tombol saat halaman dimuat
       setButtonStates(tonConnectUI.connected);
     }
   </script>
 </body>
 </html>
+
